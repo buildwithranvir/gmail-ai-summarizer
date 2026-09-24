@@ -15,9 +15,9 @@ from groq import APIStatusError, Groq
 # The three groups, in the order we show them.
 # (key the AI uses in its answer, title shown to you)
 GROUPS = [
-    ("needs_action", "🔴 Needs action"),
-    ("worth_knowing", "🟡 Worth knowing"),
-    ("safe_to_skip", "⚪ Safe to skip"),
+    ("needs_action", "Needs action"),
+    ("worth_knowing", "Worth knowing"),
+    ("safe_to_skip", "Safe to skip"),
 ]
 
 # Colour of the stripe next to each group in the HTML email.
@@ -139,7 +139,7 @@ def summary_to_html(summary, email_count, date_text):
   <body style="margin:0;padding:24px 12px;background:#f1f3f4;
                font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#3c4043;">
     <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;padding:28px 24px;">
-      <h1 style="margin:0 0 4px;font-size:22px;color:#202124;">📬 Your inbox in 30 seconds</h1>
+      <h1 style="margin:0 0 4px;font-size:22px;color:#202124;">Your inbox in 30 seconds</h1>
       <p style="margin:0 0 24px;color:#80868b;font-size:13px;">
         {html.escape(date_text)} · {email_count} unread email(s) from the last 24 hours
       </p>

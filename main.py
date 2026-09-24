@@ -1,5 +1,5 @@
 """
-main.py - Run this file!
+main.py - run this file.
 
     python main.py               (normal run, opens browser for login if needed)
     python main.py --scheduled   (automatic run, never opens a browser)
@@ -53,7 +53,7 @@ def main():
         print(f"Found {len(emails)} unread email(s). Asking the AI to summarize...\n")
         summary = summarize_emails(emails)
     else:
-        print("No unread emails in the last 24 hours. Inbox zero! 🎉\n")
+        print("No unread emails in the last 24 hours.\n")
         summary = {key: [] for key, _title in GROUPS}
 
     text = summary_to_text(summary)
@@ -75,7 +75,7 @@ def main():
         text_body=text,
         html_body=summary_to_html(summary, len(emails), date_text),
     )
-    print(f"✅ Summary emailed to you: \"{subject}\"")
+    print(f"Summary emailed to you: \"{subject}\"")
 
 
 if __name__ == "__main__":

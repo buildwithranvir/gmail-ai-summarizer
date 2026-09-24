@@ -1,4 +1,4 @@
-# Gmail API: talking to Gmail + logging in with Google
+# Gmail API: talking to Gmail and logging in with Google
 google-api-python-client
 google-auth-oauthlib
 google-auth-httplib2

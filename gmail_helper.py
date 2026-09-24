@@ -38,7 +38,7 @@ MAX_EMAILS = 50  # never process more than this many emails
 MAX_BODY_CHARS = 1500  # cut long email bodies down to this many characters
 
 # Subject of the summary email we send. We also use it to make sure
-# tomorrow's run doesn't summarize today's summary!
+# tomorrow's run doesn't summarize today's summary.
 SUMMARY_SUBJECT = "Your inbox in 30 seconds"
 
 

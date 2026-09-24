@@ -1,0 +1,15 @@
+# --- Secrets: NEVER commit these ---
+.env
+credentials.json
+token.json
+
+# --- Log from scheduled runs (contains your email summaries) ---
+summary_log.txt
+
+# --- Python virtual environment ---
+venv/
+.venv/
+
+# --- Python clutter ---
+__pycache__/
+*.pyc

@@ -1,0 +1,10 @@
+# Gmail API: talking to Gmail + logging in with Google
+google-api-python-client
+google-auth-oauthlib
+google-auth-httplib2
+
+# Groq: the free AI that writes the summary
+groq
+
+# Loads secrets from the .env file
+python-dotenv

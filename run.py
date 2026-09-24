@@ -1,8 +1,8 @@
 """
-main.py - run this file.
+run.py - the script that runs the whole thing. Just run this file.
 
-    python main.py               (normal run, opens browser for login if needed)
-    python main.py --scheduled   (automatic run, never opens a browser)
+    python run.py               (normal run, opens browser for login if needed)
+    python run.py --scheduled   (automatic run, never opens a browser)
 
 It logs in to Gmail, reads your unread emails from the last 24 hours,
 asks the AI (Groq) to summarize what matters, and emails that summary to you.

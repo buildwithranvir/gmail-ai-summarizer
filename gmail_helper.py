@@ -70,7 +70,7 @@ def get_gmail_service(allow_browser=True):
         if not allow_browser:
             raise RuntimeError(
                 "Google login needed, but this is a scheduled run so no browser "
-                "can be opened. Run 'python main.py' by hand once to log in again."
+                "can be opened. Run 'python run.py' by hand once to log in again."
             )
         if not os.path.exists(CREDENTIALS_FILE):
             raise FileNotFoundError(

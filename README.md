@@ -96,9 +96,9 @@ Every card below points to a real function in this codebase. Nothing here is asp
 | google-auth-oauthlib | Runs the one-time installed-app OAuth flow, then persists and silently refreshes the token | [gmail_helper.py, get_gmail_service](gmail_helper.py) |
 | Groq (gpt-oss-120b) | Free, low-latency inference for the three-bucket classification. The same code path can switch to gpt-oss-20b if a rate limit is hit | [ai_helper.py, summarize_emails](ai_helper.py) |
 | Forced JSON response mode | Guarantees the model's reply parses as needs_action / worth_knowing / safe_to_skip every time, with no scraping of prose | [ai_helper.py](ai_helper.py) |
-| python-dotenv | Loads GROQ_API_KEY and GROQ_MODEL from .env, which never leaves the machine | [main.py](main.py) |
+| python-dotenv | Loads GROQ_API_KEY and GROQ_MODEL from .env, which never leaves the machine | [run.py](run.py) |
 | email.message.EmailMessage | Builds a dual plain-text and HTML email, base64-encoded for the Gmail send endpoint | [gmail_helper.py, send_email](gmail_helper.py) |
-| Windows Task Scheduler / cron | Fires main.py in scheduled mode every morning without anyone present | [run_daily.bat](run_daily.bat) |
+| Windows Task Scheduler / cron | Fires run.py in scheduled mode every morning without anyone present | [run_daily.bat](run_daily.bat) |
 
 ---
 
@@ -109,8 +109,8 @@ Every request flows in one direction: Gmail, then deterministic trimming, then L
 ```mermaid
 graph TD
     subgraph "Trigger"
-        A["You run python main.py"] -->|manual, opens browser if needed| C
-        B["Task Scheduler or cron\n(main.py --scheduled)"] -->|unattended, no browser| C
+        A["You run python run.py"] -->|manual, opens browser if needed| C
+        B["Task Scheduler or cron\n(run.py --scheduled)"] -->|unattended, no browser| C
     end
 
     subgraph "Auth Layer"
@@ -154,12 +154,12 @@ graph TD
 sequenceDiagram
     autonumber
     participant TS as Task Scheduler
-    participant M as main.py
+    participant M as run.py
     participant GA as Gmail API
     participant AI as Groq (gpt-oss-120b)
     participant You as Your Inbox
 
-    TS->>M: run main.py --scheduled (8:00 AM)
+    TS->>M: launch run.py --scheduled (8:00 AM)
     M->>M: load .env (GROQ_API_KEY, GROQ_MODEL)
     M->>GA: get_gmail_service(allow_browser=False)
     alt token.json valid or refreshable
@@ -291,7 +291,7 @@ GROQ_MODEL=openai/gpt-oss-120b
 ### 4. First run
 
 ```bash
-python main.py
+python run.py
 ```
 
 A browser opens for Google login. Pick your test-user account, click through the "unverified app" notice, and approve both scopes. The login is cached to `token.json`, so later runs skip the browser entirely.
@@ -308,11 +308,11 @@ A browser opens for Google login. Pick your test-user account, click through the
 
 ### macOS / Linux (cron)
 ```bash
-0 8 * * * cd /path/to/project && venv/bin/python main.py --scheduled >> summary_log.txt 2>&1
+0 8 * * * cd /path/to/project && venv/bin/python run.py --scheduled >> summary_log.txt 2>&1
 ```
 
 ### A note on weekly re-login
-Because the OAuth app stays in Testing mode, Google expires the saved login roughly every 7 days. When that happens, the scheduled run stops cleanly (see the login handling section above) instead of hanging. Just run `python main.py` by hand once to log back in. Publishing the OAuth app removes this limitation, at the cost of keeping the "unverified app" warning permanently.
+Because the OAuth app stays in Testing mode, Google expires the saved login roughly every 7 days. When that happens, the scheduled run stops cleanly (see the login handling section above) instead of hanging. Just run `python run.py` by hand once to log back in. Publishing the OAuth app removes this limitation, at the cost of keeping the "unverified app" warning permanently.
 
 ---
 

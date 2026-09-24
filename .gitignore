@@ -6,6 +6,9 @@ token.json
 # Log from scheduled runs (contains your email summaries)
 summary_log.txt
 
+# Time of the last summary, used to space runs 20 hours apart
+last_run.txt
+
 # Python virtual environment
 venv/
 .venv/

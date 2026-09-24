@@ -2,15 +2,22 @@
 run.py - the script that runs the whole thing. Just run this file.
 
     python run.py               (normal run, opens browser for login if needed)
-    python run.py --scheduled   (automatic run, never opens a browser)
+    python run.py --scheduled   (automatic run, see below)
 
 It logs in to Gmail, reads your unread emails from the last 24 hours,
 asks the AI (Groq) to summarize what matters, and emails that summary to you.
+
+In --scheduled mode (used by the Windows task that run_daily.bat sets up):
+- it never opens a browser, since nobody is around to log in
+- it only sends a summary if the last one was sent 20 or more hours ago,
+  so logging in or unlocking the laptop several times a day is harmless
+- everything it prints goes to summary_log.txt instead of the screen
 """
 
 import os
 import subprocess
 import sys
+import time
 from datetime import datetime
 
 # The packages this project needs are installed inside the venv/ folder.
@@ -35,17 +42,48 @@ from gmail_helper import (
     send_email,
 )
 
-# Make sure emojis don't crash printing on Windows.
-sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+LOG_FILE = os.path.join(BASE_DIR, "summary_log.txt")
+LAST_RUN_FILE = os.path.join(BASE_DIR, "last_run.txt")  # when the last summary was sent
+HOURS_BETWEEN_RUNS = 20
+
+# "--scheduled" means we're running automatically from the Windows task.
+SCHEDULED = "--scheduled" in sys.argv
+
+
+def hours_since_last_run():
+    """How many hours ago the last summary was sent (None if never)."""
+    try:
+        with open(LAST_RUN_FILE) as file:
+            last_run = float(file.read().strip())
+    except (OSError, ValueError):
+        return None
+    return (time.time() - last_run) / 3600
+
+
+def remember_this_run():
+    """Save the current time as 'the last summary was sent now'."""
+    with open(LAST_RUN_FILE, "w") as file:
+        file.write(str(time.time()))
+
+
+if SCHEDULED:
+    # Sent a summary less than 20 hours ago? Then there's nothing to do yet.
+    hours = hours_since_last_run()
+    if hours is not None and hours < HOURS_BETWEEN_RUNS:
+        sys.exit(0)
+
+    # Nobody is watching the screen, so write everything (errors too) to the log.
+    log = open(LOG_FILE, "a", encoding="utf-8", buffering=1)
+    sys.stdout = sys.stderr = log
+else:
+    # Make sure special characters don't crash printing on Windows.
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 # Load GROQ_API_KEY and GROQ_MODEL from the .env file next to this script.
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 
 def main():
-    # "--scheduled" means we're running automatically (e.g. Task Scheduler),
-    # so nobody is around to log in through a browser.
-    scheduled = "--scheduled" in sys.argv
     print(f"--- Run started {datetime.now():%Y-%m-%d %H:%M} ---")
 
     # Check settings first, so we fail early with a clear message.
@@ -55,7 +93,7 @@ def main():
 
     # 1. Log in and read the inbox.
     print("Logging in to Gmail...")
-    service = get_gmail_service(allow_browser=not scheduled)
+    service = get_gmail_service(allow_browser=not SCHEDULED)
 
     print("Fetching unread emails from the last 24 hours...")
     emails = fetch_unread_emails(service)
@@ -88,6 +126,10 @@ def main():
         html_body=summary_to_html(summary, len(emails), date_text),
     )
     print(f"Summary emailed to you: \"{subject}\"")
+
+    # Only remember the run once the email is actually sent. If something
+    # failed (no internet yet, expired login), the next trigger tries again.
+    remember_this_run()
 
 
 if __name__ == "__main__":

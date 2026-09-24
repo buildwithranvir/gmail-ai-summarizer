@@ -78,7 +78,9 @@ mindmap
       HTML-Escaped Rendering
       Self-Send via Gmail API
     Automation and Ops
-      run_daily.bat Task Scheduler Entry
+      run_daily.bat One-Click Setup
+      Logon, Unlock and Hourly Triggers
+      20-Hour Spacing Between Summaries
       Scheduled Non-Interactive Mode
       summary_log.txt Run History
       python-dotenv Secret Loading
@@ -98,7 +100,7 @@ Every card below points to a real function in this codebase. Nothing here is asp
 | Forced JSON response mode | Guarantees the model's reply parses as needs_action / worth_knowing / safe_to_skip every time, with no scraping of prose | [ai_helper.py](ai_helper.py) |
 | python-dotenv | Loads GROQ_API_KEY and GROQ_MODEL from .env, which never leaves the machine | [run.py](run.py) |
 | email.message.EmailMessage | Builds a dual plain-text and HTML email, base64-encoded for the Gmail send endpoint | [gmail_helper.py, send_email](gmail_helper.py) |
-| Windows Task Scheduler / cron | Fires run.py in scheduled mode every morning without anyone present | [run_daily.bat](run_daily.bat) |
+| Windows Task Scheduler | Starts run.py silently when you log in to or unlock the laptop, and hourly while it's on. run.py sends at most one summary every 20 hours | [run_daily.bat](run_daily.bat), [setup_schedule.ps1](setup_schedule.ps1) |
 
 ---
 
@@ -159,7 +161,10 @@ sequenceDiagram
     participant AI as Groq (gpt-oss-120b)
     participant You as Your Inbox
 
-    TS->>M: launch run.py --scheduled (8:00 AM)
+    TS->>M: launch run.py --scheduled (you logged in or unlocked the laptop)
+    alt last summary was sent less than 20 hours ago
+        M-->>TS: exits quietly, nothing sent
+    end
     M->>M: load .env (GROQ_API_KEY, GROQ_MODEL)
     M->>GA: get_gmail_service(allow_browser=False)
     alt token.json valid or refreshable
@@ -300,15 +305,37 @@ A browser opens for Google login. Pick your test-user account, click through the
 
 ## Running it automatically every morning
 
-### Windows (Task Scheduler)
-1. Open Task Scheduler, create a basic task, name it, and set the trigger to Daily at a time like 8:00 AM.
-2. For the action, choose "Start a program" and browse to [run_daily.bat](run_daily.bat) in the project folder.
-3. In the task's Settings tab, enable "Run task as soon as possible after a scheduled start is missed," so a sleeping laptop still catches up.
-4. Output and errors land in `summary_log.txt`, which is git-ignored.
+### Windows: double-click run_daily.bat once
+
+That's the whole setup. [run_daily.bat](run_daily.bat) registers a Windows task (through [setup_schedule.ps1](setup_schedule.ps1), no admin rights needed) and then does a first run straight away.
+
+From then on, the summary arrives shortly after you start using the laptop each morning. The task starts `run.py` in the background:
+
+- two minutes after you log in, which gives Wi-Fi a moment to connect
+- one minute after you unlock the laptop, for example when you open it from sleep
+- every hour while the laptop stays on, as a safety net
+
+That sounds like a lot of runs, but `run.py` only sends a summary if the last one went out 20 or more hours ago. Every other trigger checks the time and exits quietly. So in practice you get one summary each morning, the first time you open the laptop, and never two within 20 hours. The time of the last summary is kept in `last_run.txt`.
+
+A few details worth knowing:
+
+- Nothing pops up on screen. The task uses `pythonw.exe`, the windowless version of Python, and everything it prints goes to `summary_log.txt`.
+- The time is only saved once the email is actually sent. If a run fails, say because the Wi-Fi isn't connected yet, the next trigger tries again.
+- VS Code and the project folder don't need to be open. The laptop does need to be on and logged in, because nothing runs in the cloud.
+- Running `run_daily.bat` again is safe. It just refreshes the task.
+- Running `python run.py` by hand always sends a summary, whatever the time. It's the automatic runs that wait 20 hours.
+
+To turn it off, run this in a terminal:
+
+```
+schtasks /delete /tn "Gmail AI Summarizer" /f
+```
 
 ### macOS / Linux (cron)
+cron has no "at login" trigger, so run it hourly and let the 20-hour check decide when to send:
+
 ```bash
-0 8 * * * cd /path/to/project && venv/bin/python run.py --scheduled >> summary_log.txt 2>&1
+0 * * * * cd /path/to/project && venv/bin/python run.py --scheduled
 ```
 
 ### A note on weekly re-login
@@ -333,7 +360,8 @@ A single run uses roughly 5,000 to 8,000 tokens, well inside Groq's free-tier wi
 - Does not read attachments (PDFs, images), already-read mail, or mail older than 24 hours.
 - Writes exactly one email per run, the summary, sent only to the logged-in account.
 - Never deletes, archives, labels, marks as read, or replies to anything in your mailbox. The OAuth scopes rule that out at the API level.
-- Requires the machine to be on at the scheduled time. There's no cloud-hosted, always-on component.
+- Sends at most one automatic summary every 20 hours, the first time you log in to or unlock the laptop after that gap.
+- Requires the laptop to be on. There's no cloud-hosted, always-on component.
 - This is an AI-assisted convenience tool, not something to rely on for anything safety-critical. The system prompt asks the model to flag suspicious emails, but it can still get something wrong. Check anything time-sensitive directly in Gmail.
 
 ---

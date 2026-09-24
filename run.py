@@ -9,8 +9,20 @@ asks the AI (Groq) to summarize what matters, and emails that summary to you.
 """
 
 import os
+import subprocess
 import sys
 from datetime import datetime
+
+# The packages this project needs are installed inside the venv/ folder.
+# If this file is started with your normal Python instead (for example with
+# VS Code's Run button), restart it using the project's own venv Python.
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+VENV_DIR = os.path.join(BASE_DIR, "venv")
+VENV_PYTHON = os.path.join(
+    VENV_DIR, "Scripts" if os.name == "nt" else "bin", "python.exe" if os.name == "nt" else "python"
+)
+if os.path.exists(VENV_PYTHON) and os.path.normcase(sys.prefix) != os.path.normcase(VENV_DIR):
+    sys.exit(subprocess.call([VENV_PYTHON, os.path.abspath(__file__), *sys.argv[1:]]))
 
 from dotenv import load_dotenv
 
@@ -27,7 +39,7 @@ from gmail_helper import (
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 # Load GROQ_API_KEY and GROQ_MODEL from the .env file next to this script.
-load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 
 def main():
